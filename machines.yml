@@ -1,0 +1,21 @@
+---
+# sample
+# - name: kvm-01
+#   box: slowe/ubuntu-trusty-x64
+#   memory: 1024
+#   cpu: 1
+#   int_net: DHCPScope
+#   ip_addr: 192.168.100.100
+#   provision: kvm.yml
+#   sync_disabled: false
+#   gui: true
+- name: centos-01
+  box: centos/7
+  memory: 1024
+  cpu: 1
+  ip_addr: 192.168.100.101
+- name: ansible-01
+  box: centos/7
+  memory: 1024
+  cpu: 1
+  ip_addr: 192.168.100.100
