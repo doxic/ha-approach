@@ -27,7 +27,6 @@ executing ansible-playbook directly on the guest machine.
 ```
 Vagrantfile
 provisioning
-
     roles/
         common/               # this hierarchy represents a "role"
             tasks/            #
@@ -42,7 +41,6 @@ provisioning
                 main.yml      #  <-- role dependencies
             library/          # roles can also include custom modules
             lookup_plugins/   # or other types of plugins, like lookup in this case
-
         webtier/              # same kind of structure as "common" was above, done for the webtier role
 ```
 
@@ -65,6 +63,14 @@ set PATH=%PATH%;C:\Program Files (x86)\PuTTY
 ```
 
 Start up server instance with `vagrant up`
+
+## Network
+### Failover
+#### Manual
+
+The first and most important step is the manual failover.
+
+**TODO** 
 
 
 ## References

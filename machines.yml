@@ -6,16 +6,28 @@
 #   cpu: 1
 #   int_net: DHCPScope
 #   ip_addr: 192.168.100.100
-#   provision: kvm.yml
+#   ansible: kvm.yml
+#   shell: kvm.yml
 #   sync_disabled: false
 #   gui: true
-- name: centos-01
+- name: srv1
   box: centos/7
   memory: 1024
   cpu: 1
-  ip_addr: 192.168.100.101
-- name: ansible-01
+  ip_addr:
+    - 192.168.100.101
+    - 192.168.100.102
+  #shell: provisioning/runonce.sh
+  sync_disabled: false
+- name: srv2
   box: centos/7
   memory: 1024
   cpu: 1
-  ip_addr: 192.168.100.100
+  ip_addr:
+    - 192.168.100.103
+    - 192.168.100.104
+- name: cli1
+  box: centos/7
+  memory: 1024
+  cpu: 1
+  ip_addr: 192.168.100.50

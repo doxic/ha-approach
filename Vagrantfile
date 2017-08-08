@@ -41,7 +41,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           srv.vm.network :private_network, ip: machine['ip_addr'],
           virtualbox__intnet: "DHCPScope"
         else
-          srv.vm.network 'private_network', ip: machine['ip_addr']
+          machine['ip_addr'].each do |ip_addr|
+            srv.vm.network 'private_network', ip: ip_addr
+          end # machine['ip_addr'].each
         end #if machine['int_net']
       end # if machine['ip_addr']
 
@@ -62,14 +64,19 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       end
 
       # Provision the VM with Ansible if enabled in machines.yml
-      if machine['provision'] != nil
+      if machine['ansible'] != nil
         srv.vm.provision :ansible_local do |ansible|
-          ansible.playbook       = machine['provision']
+          ansible.playbook       = machine['ansible']
           ansible.verbose        = true
           ansible.install        = true
           ansible.limit          = "all" # or only "nodes" group, etc.
           ansible.inventory_path = "provisioning/staging"
-        end #machine.vm.provision
+        end #machine.vm.ansible
+      end # if machine['provision']
+
+      # Provision the VM with Shell if enabled in machines.yml
+      if machine['shell'] != nil
+        srv.vm.provision "shell", path: machine['shell']
       end # if machine['provision']
     end # config.vm.define
   end # machines.each
