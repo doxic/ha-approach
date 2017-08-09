@@ -30,7 +30,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       # Configure default synced folder (disable by default)
       if machine['sync_disabled'] != nil
-        srv.vm.synced_folder '.', '/vagrant', disabled: machine['sync_disabled']
+        srv.vm.synced_folder '.', '/vagrant', disabled: machine['sync_disabled'], type: "virtualbox"
       else
         srv.vm.synced_folder '.', '/vagrant', disabled: true
       end #if machine['sync_disabled']
