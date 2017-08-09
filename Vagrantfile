@@ -30,7 +30,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
       # Configure default synced folder (disable by default)
       if machine['sync_disabled'] != nil
-        srv.vm.synced_folder '.', '/vagrant', disabled: machine['sync_disabled'], type: "virtualbox"
+        srv.vm.synced_folder '.', '/vagrant', disabled: machine['sync_disabled'], type: "virtualbox"  
       else
         srv.vm.synced_folder '.', '/vagrant', disabled: true
       end #if machine['sync_disabled']
@@ -46,7 +46,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
           end # machine['ip_addr'].each
         end #if machine['int_net']
       end # if machine['ip_addr']
-
+	  
       # Configure CPU & RAM per settings in machines.yml (virtualbox)
       srv.vm.provider :virtualbox do |vb|
         vb.customize ["modifyvm", :id, "--name", machine['name']]
@@ -61,6 +61,12 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
         # use the host's DNS API to query the information
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
         vb.linked_clone = true if Vagrant::VERSION =~ /^1.8/
+		# Additional nicpromisc command
+		if machine['nicpromisc'] != nil
+		  machine['nicpromisc'].each do |command|
+		    vb.customize ["modifyvm", :id, command, "allow-all"]
+		  end # machine['nicpromisc'].each
+		end # machine['nicpromisc']
       end
 
       # Provision the VM with Ansible if enabled in machines.yml

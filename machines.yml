@@ -17,7 +17,10 @@
   ip_addr:
     - 192.168.100.101
     - 192.168.100.102
-  #shell: provisioning/runonce.sh
+  nicpromisc:
+    - --nicpromisc2
+    - --nicpromisc3
+  shell: provisioning/srv1.sh
   sync_disabled: false
 - name: srv2
   box: centos/7
@@ -26,9 +29,14 @@
   ip_addr:
     - 192.168.100.103
     - 192.168.100.104
+  nicpromisc:
+  - --nicpromisc2
+  - --nicpromisc3
+  shell: provisioning/srv2.sh
 - name: cli1
   box: centos/7
   memory: 1024
   cpu: 1
   ip_addr: 
     - 192.168.100.50
+  shell: provisioning/cli1.sh
