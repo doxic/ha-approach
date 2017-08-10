@@ -186,17 +186,124 @@ sudo ip addr add 192.168.100.99/24 dev vip99
 arping -c 4 -A -I vip99 192.168.100.99
 
 # ping gateway
-ping -I vip99 192.168.100.1
+ping -W 1 -c 2-I vip99 192.168.100.1
 
 # remove ip
 sudo ip addr del 192.168.100.99/24 dev vip99
 
 # Disable ARP for VIP
 # https://www.kernel.org/doc/Documentation/networking/ip-sysctl.txt
+# https://sourceforge.net/p/keepalived/mailman/message/32405216/
 arp_filter 1
 arp_notify 1
-echo 1 > /proc/sys/net/ipv4/conf/all/arp_filter
-echo 1 > /proc/sys/net/ipv4/conf/all/arp_notify
 
+echo 0 > /proc/sys/net/ipv4/conf/all/arp_filter
 echo 1 > /proc/sys/net/ipv4/conf/all/arp_ignore
 echo 2 > /proc/sys/net/ipv4/conf/all/arp_announce
+
+
+arp_filter = 0
+0 - (default) The kernel can respond to arp requests with addresses
+	from other interfaces. This may seem wrong but it usually makes
+	sense, because it increases the chance of successful communication.
+	IP addresses are owned by the complete host on Linux, not by
+	particular interfaces. Only for more complex setups like load-
+	balancing, does this behaviour cause problems.
+	
+arp_ignore = 1
+1 - reply only if the target IP address is local address
+	configured on the incoming interface
+
+arp_announce = 2
+2 - Always use the best local address for this target.
+	In this mode we ignore the source address in the IP packet
+	and try to select local address that we prefer for talks with
+	the target host. Such local address is selected by looking
+	for primary IP addresses on all our subnets on the outgoing
+	interface that include the target IP address. If no suitable
+	local address is found we select the first local address
+	we have on the outgoing interface or on all other interfaces,
+	with the hope we will receive reply for our request and
+	even sometimes no matter the source IP address we announce.
+
+(not strictly necessary for fixing arp responses, but helps prevent announcing out with the wrong MAC). I also initially got the same behaviour as you (only physical MAC responding) when arp_filter was set to 1.
+
+# routing
+ip route flush dev team0
+ip route flush dev vip99
+ip route replace 192.168.100.0/24 dev team0  proto kernel  scope link  src 192.168.100.100 metric 100
+ip route replace 192.168.100.0/24 dev vip99  proto kernel  scope link  src 192.168.100.99 metric 90
+
+
+#
+# Fixing it
+#
+sudo ip link add link team0 address 06:00:01:00:00:99 vip99 type macvlan mode bridge
+#active interface
+sudo ip link set dev vip99 up
+
+# https://www.linux.com/learn/replacing-ifconfig-ip
+# add ip
+sudo ip addr add 192.168.100.99/24 dev vip99
+sudo ip addr del 192.168.100.99/24 dev vip99
+# Setup MACVLAN
+/etc/rc.local
+
+cat << 'EOF' > /usr/local/addVIP.sh
+#!/bin/bash
+
+# ------------
+# wait for network availability
+# ------------
+
+while arping -I team0 -c 1 192.168.100.99 > /dev/null
+do
+    echo "$0: Reply from 192.168.100.99, waiting..."
+    sleep 1
+done
+
+
+# ------------
+# Add IP
+# ------------
+
+echo "$0: Bind local 192.168.100.99..."
+ip addr add 192.168.100.99/24 dev vip99
+
+# ------------
+# Ping Broadcast
+# ------------
+
+echo "$0: Ping Broadcast..."
+ping -c 2 -W 1 -b -I vip99 192.168.100.255 > /dev/null
+
+# ------------
+# Send Gratuitous ARP
+# ------------
+
+echo "$0: Send Gratuitous ARP..."
+arping -c 2 -A -I vip99 192.168.100.99 > /dev/null
+
+exit 0
+EOF
+chmod u+x /usr/local/addVIP.sh
+
+cat << 'EOF' > /usr/local/delVIP.sh
+#!/bin/bash
+
+# ------------
+# Remove IP
+# ------------
+
+echo "$0: Remove local 192.168.100.99..."
+ip addr del 192.168.100.99/24 dev vip99
+
+# ------------
+# wait for network availability
+# ------------
+
+arping -I team0 -f 192.168.100.99
+
+exit 0
+EOF
+chmod u+x /usr/local/delVIP.sh
