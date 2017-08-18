@@ -22,8 +22,8 @@ IPV4_FAILURE_FATAL=yes
 IPV6INIT=no
 ONBOOT=yes
 EOF
- 
- 
+
+
 cat << EOF > /etc/sysconfig/network-scripts/ifcfg-team0-eth1
 NAME=team0-eth1
 DEVICE=eth1
@@ -32,7 +32,7 @@ TEAM_MASTER=team0
 DEVICETYPE=TeamPort
 MTU=1400
 EOF
- 
+
 cat << EOF > /etc/sysconfig/network-scripts/ifcfg-team0-eth2
 NAME=team0-eth2
 DEVICE=eth2
@@ -50,9 +50,17 @@ cat << EOF > /etc/rc.d/rc.local
 ip link set eth1 promisc on
 ip link set eth2 promisc on
 ip link set team0 promisc on
+ip route flush dev eth1
+ip route flush dev eth2
+export PATH=$PATH:/usr/local/bin
 exit 0
 EOF
 
 chmod u+x /etc/rc.d/rc.local
 systemctl enable rc-local
 systemctl start rc-local
+/etc/rc.d/rc.local
+
+cp /vagrant/migrateVIP /usr/local/bin/migrateVIP
+chmod u+x /usr/local/bin/migrateVIP
+export PATH=$PATH:/usr/local/bin

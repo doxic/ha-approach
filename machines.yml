@@ -33,10 +33,11 @@
   - --nicpromisc2
   - --nicpromisc3
   shell: provisioning/srv2.sh
+  sync_disabled: false
 - name: cli1
   box: centos/7
   memory: 1024
   cpu: 1
-  ip_addr: 
+  ip_addr:
     - 192.168.100.50
   shell: provisioning/cli1.sh

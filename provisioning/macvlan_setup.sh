@@ -252,36 +252,45 @@ sudo ip addr del 192.168.100.99/24 dev vip99
 cat << 'EOF' > /usr/local/addVIP.sh
 #!/bin/bash
 
+# Set Colors
+bold=$(tput bold)
+reset=$(tput sgr0)
+purple=$(tput setaf 171)
+red=$(tput setaf 1)
+green=$(tput setaf 76)
+tan=$(tput setaf 3)
+blue=$(tput setaf 38)
+underline=$(tput sgr 0 1)
+
 # ------------
 # wait for network availability
 # ------------
 
 while arping -I team0 -c 1 192.168.100.99 > /dev/null
 do
-    echo "$0: Reply from 192.168.100.99, waiting..."
+    echo "${red}Duplicate  address  detection${reset}, waiting..."
     sleep 1
 done
-
 
 # ------------
 # Add IP
 # ------------
 
-echo "$0: Bind local 192.168.100.99..."
+echo "Bind ${tan}192.168.100.99${reset}..."
 ip addr add 192.168.100.99/24 dev vip99
 
 # ------------
 # Ping Broadcast
 # ------------
 
-echo "$0: Ping Broadcast..."
-ping -c 2 -W 1 -b -I vip99 192.168.100.255 > /dev/null
+echo "Ping ${bold}Broadcast${reset}..."
+ping -c 2 -W 1 -b -I vip99 192.168.100.255 &>/dev/null
 
 # ------------
 # Send Gratuitous ARP
 # ------------
 
-echo "$0: Send Gratuitous ARP..."
+echo "Send ${bold}Gratuitous ARP${reset}..."
 arping -c 2 -A -I vip99 192.168.100.99 > /dev/null
 
 exit 0
@@ -291,19 +300,30 @@ chmod u+x /usr/local/addVIP.sh
 cat << 'EOF' > /usr/local/delVIP.sh
 #!/bin/bash
 
+# Set Colors
+bold=$(tput bold)
+reset=$(tput sgr0)
+purple=$(tput setaf 171)
+red=$(tput setaf 1)
+green=$(tput setaf 76)
+tan=$(tput setaf 3)
+blue=$(tput setaf 38)
+underline=$(tput sgr 0 1)
+
 # ------------
 # Remove IP
 # ------------
 
-echo "$0: Remove local 192.168.100.99..."
+echo "${bold}Remove${reset} 192.168.100.99..."
 ip addr del 192.168.100.99/24 dev vip99
 
 # ------------
 # wait for network availability
 # ------------
 
+printf "\n"
 arping -I team0 -f 192.168.100.99
-
+echo "${tan}SUCCESS${reset}"
 exit 0
 EOF
 chmod u+x /usr/local/delVIP.sh
