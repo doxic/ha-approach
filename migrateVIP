@@ -1,0 +1,164 @@
+#!/bin/bash
+
+# exit the script if any statement returns a non-true return value
+#set -e
+# exit the script if any uninitialised variable
+set -u
+#  prevents errors in a pipeline from being masked
+set -o pipefail
+# Internal Field Separator splitting only on newlines and tab characters.
+IFS=$'\n\t'
+# check for root
+[ $EUID -ne 0 ] && { echo "You must be a root user"; exit 1; }
+
+# Immutable global variables
+readonly PROGNAME=$(basename $0)
+readonly PROGDIR=$(readlink -m $(dirname $0))
+readonly ARGS="$@"
+
+# configuration
+readonly DEV=team0
+readonly VIP=192.168.100.99
+readonly GW=192.168.100.1
+readonly ARGS_CMD=${1:-status}
+readonly ARGS_FORCE=${2:-graceful}
+
+
+# Set Colors
+bold=$(tput bold)
+reset=$(tput sgr0)
+purple=$(tput setaf 171)
+red=$(tput setaf 1)
+green=$(tput setaf 76)
+tan=$(tput setaf 3)
+blue=$(tput setaf 38)
+underline=$(tput sgr 0 1)
+
+# Options and Usage
+# -----------------------------------
+usage() {
+cat << EOF
+Usage: $PROGNAME {add|del|status} [force]
+
+Script for semi-automatic switch of ${bold}V${reset}irtual ${bold}IP${reset} address between multiple hosts.
+
+ ${bold}OPTIONS:${reset}
+   status                   Prints status of predefined VIPs
+   add                      Runs Duplicate Address detection and adds IP afterwards
+   del|delete               Removes IP from host
+   force                    Forcefully remove or add address without preliminary checks
+   help                     show this help
+
+
+Examples:
+   Run all tests:
+   $PROGNAME --test all
+EOF
+}
+
+# ------------
+# Check local adapters
+# ------------
+localDetection()
+{
+  #set +e # disable non-true return exit
+  echo "Check local bindings"
+  ip address show | grep $VIP &>/dev/null
+  if [ $? -eq 0 ]
+  then
+    echo "IP $VIP ${tan}bound${reset} locally."
+    return 1 # This should break the add-process
+  else
+    echo "IP $VIP ${red}no set${reset} locally."
+    return 0 # We do not want to see the IP
+  fi
+}
+
+# ------------
+# wait for network availability
+# ------------
+vipDetection()
+{
+  echo "Arping ${bold}VIP${reset} $VIP"
+  while arping -I $DEV -c 1 $VIP > /dev/null
+  do
+      echo "${red}Duplicate  Address  Detection${reset}, wait 1s..."
+      sleep 1
+  done
+}
+
+# ------------
+# Add IP
+# ------------
+addIp()
+{
+  echo "Bind ${tan}$VIP${reset}..."
+  ip addr add $VIP/24 dev $DEV
+}
+
+# ------------
+# update neighbours arp caches
+# ------------
+updateArp()
+{
+  echo "Send Unsolicited ARP to ${bold}Gateway${reset}"
+  arping -c1 -U -I $DEV -s $VIP $GW &>/dev/null
+  echo "Send ${bold}Gratuitous ARP${reset}"
+  arping -c 2 -A -I $DEV $VIP > /dev/null
+}
+
+# ------------
+# Remove IP
+# ------------
+deleteIp()
+{
+  echo "${bold}Remove${reset} IP $VIP..."
+  ip addr del $VIP/24 dev $DEV
+}
+
+# ------------
+# wait for network availability
+# ------------
+checkIp()
+{
+  arping -I $DEV -f $VIP
+  echo "${tan}SUCCESS${reset}"
+}
+
+
+# See how we were called.
+case "$ARGS_CMD" in
+  add)
+        if [ $ARGS_FORCE != "force" ]; then
+          localDetection || exit 1
+          vipDetection
+        else
+          echo "${red}### May the Force be with you ###${reset}"
+        fi
+        addIp
+        updateArp
+        ;;
+  del|delete)
+        deleteIp
+        if [ $ARGS_FORCE != "force" ]; then
+          checkIp
+        else
+          echo "${red}### May the Force be with you ###${reset}"
+        fi
+        ;;
+  status)
+        localDetection
+        if [ $? -eq 0 ]; then
+          echo "Options: $PROGNAME ${bold}add${reset}|status [force]"
+        else
+          echo "#1 ${red}REMOTE${reset}: $PROGNAME ${bold}add${reset}|status [force]"
+          echo "#2 ${blue}LOCAL${reset}: $PROGNAME ${bold}del${reset}|status [force]"
+        fi
+        ;;
+  *|help)
+        usage
+        exit 2
+        ;;
+esac
+
+exit 0
